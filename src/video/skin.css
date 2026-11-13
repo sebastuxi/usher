@@ -1,0 +1,1893 @@
+/*
+ * Usher: the playhead tells the time. design/spec.md is the source of truth; section numbers below refer to it.
+ *
+ * Sizes are multiples of `u` = --media-spacing (4px by default). Layout tokens live on the container's children and
+ * on the frame's children, because container queries cannot style the container they measure:
+ *   --usher-inset         side inset (16px, 8px at narrow and tiny)
+ *   --usher-inset-bottom  bottom inset (24px + safe area in portrait and square)
+ *   --usher-button        button size (40px fine pointer, 48px coarse)
+ *   --usher-line-hit      time slider hit height (32px fine, 48px coarse)
+ *   --usher-glyph-inset   (button − icon live area) / 2: the line, duration and title share the glyphs' edges
+ *   --usher-zone          height of the controls zone, from the bottom edge to the top of the marker
+ *   --usher-feather       soft edge of the shade band above the zone (80px, less on short players)
+ */
+@layer components {
+  /* The only keyframes in the skin (§11). */
+  @keyframes usher-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  @scope (.media-skin[data-theme="usher"][data-preset="video"]) {
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Layout tokens (§4, §7)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    :scope > *,
+    .usher-frame > * {
+      --usher-inset: calc(var(--media-spacing) * 4);
+      --usher-inset-top: var(--usher-inset);
+      --usher-inset-bottom: var(--usher-inset);
+      --usher-button: calc(var(--media-spacing) * 10);
+      --usher-line-hit: calc(var(--media-spacing) * 8);
+      /* 80px, or a sixth of the frame's height on short players (cqb reads the frame, the nearest size container). */
+      --usher-feather: min(calc(var(--media-spacing) * 20), 16cqb);
+      --usher-title-line: calc(var(--media-spacing) * 5);
+      --usher-thumbnail-width: calc(var(--media-spacing) * 40);
+      --usher-thumbnail-height: calc(var(--media-spacing) * 22.5);
+    }
+
+    @media (pointer: coarse) {
+      :scope > *,
+      .usher-frame > * {
+        --usher-button: calc(var(--media-spacing) * 12);
+        --usher-line-hit: calc(var(--media-spacing) * 12);
+      }
+    }
+
+    @container media-root (width < 672px) {
+      :scope > *,
+      .usher-frame > * {
+        --usher-thumbnail-width: calc(var(--media-spacing) * 32);
+        --usher-thumbnail-height: calc(var(--media-spacing) * 18);
+      }
+    }
+
+    @container media-root (width <= 384px) {
+      :scope > *,
+      .usher-frame > * {
+        --usher-inset: calc(var(--media-spacing) * 2);
+        --usher-thumbnail-width: calc(var(--media-spacing) * 24);
+        --usher-thumbnail-height: calc(var(--media-spacing) * 13.5);
+      }
+    }
+
+    /* Portrait and square: room below the row for the home indicator and thumbs. */
+    @container usher-frame (aspect-ratio <= 1) {
+      .usher-frame > * {
+        --usher-inset-bottom: calc(var(--media-spacing) * 6 + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* While captions are on, a short feather that the lifted cues clear (styles/video/captions.css). */
+    :scope:has(.usher-captions[data-active]) > *,
+    :scope:has(.usher-captions[data-active]) .usher-frame > * {
+      --usher-feather: calc(var(--media-spacing) * 8);
+    }
+
+    /* Derived; declared again wherever an input above can change, so they always see the local values. */
+    :scope > *,
+    .usher-frame > * {
+      --usher-glyph-inset: calc((var(--usher-button) - var(--usher-icon-live)) / 2);
+      --usher-zone: calc(var(--usher-inset-bottom) + var(--usher-button) + var(--usher-line-hit));
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Container, frame, poster
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    :scope {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      isolation: isolate;
+      border-radius: var(--media-video-border-radius);
+      background-color: #000;
+      color: var(--usher-print);
+      font-family: var(--usher-font);
+      font-size: var(--usher-text-label);
+      line-height: 1.25;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      outline: none;
+      container: media-root / inline-size;
+    }
+
+    /* Hairline over the picture's edge (public --media-border-color); it also draws the container's focus ring. */
+    :scope::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 1px var(--media-frame-border);
+      pointer-events: none;
+    }
+
+    :scope:focus-visible::after {
+      box-shadow:
+        inset 0 0 0 1px var(--usher-ring-edge),
+        inset 0 0 0 3px var(--media-ring),
+        inset 0 0 0 4px var(--usher-ring-edge);
+    }
+
+    :scope:fullscreen::after {
+      box-shadow: none;
+    }
+
+    /* Idle cursor, on the same condition as the controls. */
+    @media (pointer: fine) {
+      :scope:not([data-controls-visible]):not(:has(.usher-content :focus-visible)) {
+        cursor: none;
+      }
+    }
+
+    .usher-poster {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    .usher-poster:not([data-visible]) {
+      display: none;
+    }
+
+    .usher-poster-image {
+      width: 100%;
+      height: 100%;
+      object-fit: var(--media-object-fit, contain);
+      object-position: var(--media-object-position, center);
+    }
+
+    /* State probe only: the spinner lives inside the marker and the start marker (§10). */
+    .usher-buffering {
+      display: none;
+    }
+
+    /* Size container for portrait and square. It sits inside the container, so its height is never intrinsic. */
+    .usher-frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      container: usher-frame / size;
+    }
+
+    .usher-visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Shade band (§6): a smoothstep scrim, full strength where the glyphs sit, eased out above them over the feather.
+     * Nine stops in oklab (1 − smoothstep at eighths), so the edge has no kinks to band. ::after sits behind the line
+     * and row, ::before behind the title while it shows. The element fades with its own opacity.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-shade {
+      position: absolute;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+      transition: opacity var(--media-duration-controls) var(--usher-ease-enter);
+    }
+
+    .usher-shade::before,
+    .usher-shade::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      transition: opacity var(--media-duration-controls) var(--usher-ease-enter);
+      background-image: linear-gradient(
+        var(--usher-band-direction) in oklab,
+        rgb(var(--usher-scrim-color) / var(--usher-scrim-peak)) var(--usher-band-solid),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.957)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.125),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.844)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.25),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.684)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.375),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.5)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.5),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.316)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.625),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.156)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.75),
+        rgb(var(--usher-scrim-color) / calc(var(--usher-scrim-peak) * 0.043)) calc(var(--usher-band-solid) + (100% - var(--usher-band-solid)) * 0.875),
+        rgb(var(--usher-scrim-color) / 0)
+      );
+    }
+
+    /* Full strength up to the middle of the line plus half a line of text, feathered above. */
+    .usher-shade::after {
+      --usher-band-direction: to top;
+      --usher-band-solid: calc(var(--usher-zone) - var(--usher-line-hit) / 2 + var(--media-spacing) * 2);
+      bottom: 0;
+      height: calc(var(--usher-zone) + var(--usher-feather));
+    }
+
+    .usher-shade::before {
+      --usher-band-direction: to bottom;
+      --usher-band-solid: calc(var(--usher-inset-top) + var(--usher-title-line) + var(--media-spacing));
+      top: 0;
+      height: calc(var(--usher-band-solid) + var(--usher-feather));
+      display: none;
+    }
+
+    :where(.usher-frame:has(.usher-title:not([data-hidden]))) > .usher-shade::before {
+      display: block;
+    }
+
+    .usher-shade:not([data-started])::after {
+      visibility: var(--media-controls-before-start, hidden);
+    }
+
+    /* Hidden with the controls, unless a control holds keyboard focus or playback is stalled (the line stays up). */
+    .usher-frame:not(:has(.usher-content :focus-visible)) > .usher-shade:not([data-visible]) {
+      opacity: 0;
+    }
+
+    :scope:has(.usher-buffering[data-visible]) .usher-shade[data-started] {
+      opacity: 1;
+    }
+
+    .usher-frame:not(:has(.usher-content :focus-visible)) > .usher-shade:not([data-visible])::before {
+      opacity: 0;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Controls content and visibility (§8: never hide while anything inside has keyboard focus)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-content {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: block;
+      pointer-events: none;
+    }
+
+    :is(.usher-title, .usher-center, .usher-line-row, .usher-row) {
+      transition: opacity var(--media-duration-controls) var(--usher-ease-enter);
+    }
+
+    .usher-content:not([data-visible]):not(:has(:focus-visible)) :is(.usher-title, .usher-center, .usher-line-row, .usher-row) {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* A stall during playback keeps the line and the marker (with its spinner) on screen; the row may stay hidden. */
+    :scope:has(.usher-buffering[data-visible]) .usher-content[data-started] .usher-line-row {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Title
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-title {
+      position: absolute;
+      top: var(--usher-inset-top);
+      inset-inline: calc(var(--usher-inset) + var(--usher-glyph-inset));
+      display: block;
+      overflow: hidden;
+      font-size: var(--usher-text-title);
+      font-weight: 600;
+      line-height: var(--usher-title-line);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Buttons and icons
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .media-button {
+      position: relative;
+      display: grid;
+      flex: none;
+      place-items: center;
+      width: var(--usher-button);
+      height: var(--usher-button);
+      padding: 0;
+      border-radius: var(--usher-radius);
+      color: var(--usher-print);
+      background-color: transparent;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+      transition: scale var(--media-duration-fast) var(--usher-ease-enter);
+    }
+
+    @media (hover: hover) {
+      .media-button:hover {
+        background-color: var(--usher-hover);
+      }
+    }
+
+    .media-button:active:not(:disabled, [aria-disabled="true"]) {
+      scale: 0.96;
+    }
+
+    .media-button:is(:disabled, [aria-disabled="true"]) {
+      color: rgb(255 255 255 / 0.4);
+      cursor: default;
+    }
+
+    .usher-icon {
+      display: block;
+      flex: none;
+      width: var(--usher-icon);
+      height: var(--usher-icon);
+    }
+
+    .media-button > .usher-icon {
+      grid-area: 1 / 1;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-enter);
+    }
+
+    /* One focus ring everywhere (§8): a 2px ring-colour band between two 1px dark edges. */
+    :is(.media-button, .usher-thumb, .usher-volume-thumb):focus-visible {
+      outline: 2px solid var(--media-ring);
+      outline-offset: 1px;
+      box-shadow:
+        0 0 0 1px var(--usher-ring-edge),
+        0 0 0 4px var(--usher-ring-edge);
+    }
+
+    /* The same ring drawn inside, where an outer ring would be clipped (menu rows). */
+    .media-menu-item:focus-visible {
+      outline: 2px solid var(--media-ring);
+      outline-offset: -3px;
+      box-shadow:
+        inset 0 0 0 1px var(--usher-ring-edge),
+        inset 0 0 0 4px var(--usher-ring-edge);
+    }
+
+    /* Icon pairs crossfade in place, switched by the control's own state attributes. */
+    :is(.usher-play-restart, .usher-play-play, .usher-play-pause, .usher-mute-off, .usher-mute-low),
+    :is(.usher-captions-on, .usher-pip-exit, .usher-cast-exit, .usher-airplay-exit, .usher-fullscreen-exit) {
+      opacity: 0;
+    }
+
+    :is(.usher-play, .usher-hero):not([data-ended]):is([data-paused], :not([data-started])) .usher-play-play,
+    :is(.usher-play, .usher-hero)[data-started]:not([data-paused], [data-ended]) .usher-play-pause,
+    :is(.usher-play, .usher-hero)[data-ended] .usher-play-restart {
+      opacity: 1;
+    }
+
+    .usher-mute:is([data-muted], [data-volume-level="off"]) > .usher-mute-off,
+    .usher-mute:not([data-muted])[data-volume-level="low"] > .usher-mute-low,
+    .usher-captions[data-active] > .usher-captions-on,
+    .usher-pip[data-pip] > .usher-pip-exit,
+    .usher-cast[data-cast-state="connected"] > .usher-cast-exit,
+    .usher-airplay[data-airplay-state="connected"] > .usher-airplay-exit,
+    .usher-fullscreen[data-fullscreen] > .usher-fullscreen-exit {
+      opacity: 1;
+    }
+
+    .usher-mute:is([data-muted], [data-volume-level="off"], [data-volume-level="low"]) > .usher-mute-high,
+    .usher-captions[data-active] > .usher-captions-off,
+    .usher-pip[data-pip] > .usher-pip-enter,
+    .usher-cast[data-cast-state="connected"] > .usher-cast-enter,
+    .usher-airplay[data-airplay-state="connected"] > .usher-airplay-enter,
+    .usher-fullscreen[data-fullscreen] > .usher-fullscreen-enter {
+      opacity: 0;
+    }
+
+    /* The spinner shows only while the buffering indicator says so (after its stock delay). The token is `none` under
+       reduced motion, which leaves a static arc. */
+    .usher-spinner {
+      display: none;
+      animation: var(--media-spinner-animation, usher-spin 800ms linear infinite);
+    }
+
+    :scope:has(.usher-buffering[data-visible]) .usher-spinner {
+      display: block;
+    }
+
+    :scope:has(.usher-buffering[data-visible]) .usher-hero-glyph > .usher-icon:not(.usher-spinner) {
+      visibility: hidden;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Centre: start and replay marker (§9.4), touch transport in portrait and square (§7)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--media-spacing) * 8);
+      pointer-events: none;
+    }
+
+    .usher-hero,
+    .usher-transport {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: auto;
+      transition:
+        opacity var(--media-duration) var(--usher-ease-exit),
+        visibility 0s linear var(--media-duration),
+        scale var(--media-duration-fast) var(--usher-ease-enter);
+    }
+
+    .usher-hero:is(:not([data-started]), [data-ended]) {
+      visibility: visible;
+      opacity: 1;
+      transition-duration: var(--media-duration-fast), 0s, var(--media-duration-fast);
+      transition-delay: 0s;
+    }
+
+    .usher-hero {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--media-spacing) * 2);
+      width: auto;
+      min-width: var(--usher-hero);
+      height: var(--usher-hero);
+      padding-inline: calc(var(--media-spacing) * 4) calc(var(--media-spacing) * 5);
+      border-radius: var(--usher-hero-radius);
+      color: var(--usher-accent-ink);
+      background-color: var(--usher-accent);
+      box-shadow:
+        0 0 0 1px color-mix(in oklab, var(--usher-accent-ink) 24%, transparent),
+        0 1px 2px rgb(0 0 0 / 0.3),
+        0 4px 12px rgb(0 0 0 / 0.2);
+      font-size: var(--usher-text-hero);
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    @media (hover: hover) {
+      .usher-hero:hover {
+        background-color: color-mix(in oklab, var(--usher-accent) 90%, var(--usher-accent-ink));
+      }
+    }
+
+    .usher-hero-glyph {
+      display: grid;
+      place-items: center;
+    }
+
+    .usher-hero-glyph > .usher-icon {
+      grid-area: 1 / 1;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-enter);
+    }
+
+    .usher-hero-time {
+      display: block;
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+
+    .usher-hero-time[data-unavailable],
+    .usher-hero:not([data-ended])[data-started] .usher-hero-time {
+      display: none;
+    }
+
+    .usher-hero:not(:has(.usher-hero-time:not([data-unavailable]))) {
+      padding-inline: 0;
+    }
+
+    .usher-transport {
+      display: grid;
+      width: calc(var(--media-spacing) * 14);
+      height: calc(var(--media-spacing) * 14);
+      border-radius: calc(var(--usher-radius) * 1000);
+      background-color: var(--usher-disc);
+    }
+
+    /* The seek arrow with its seconds tucked under the arrow's open corner. */
+    .usher-transport-glyph {
+      position: relative;
+      display: block;
+    }
+
+    .usher-transport[data-direction="backward"] .usher-transport-icon {
+      scale: -1 1;
+    }
+
+    /* The stock label position: the seek arc leaves its lower outer corner clear for it. */
+    .usher-transport-label {
+      position: absolute;
+      bottom: calc(var(--media-spacing) * -0.75);
+      right: -1px;
+      font-size: calc(var(--media-spacing) * 2.25);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+    }
+
+    .usher-transport[data-direction="backward"] .usher-transport-label {
+      right: auto;
+      left: -1px;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Bottom zone: the line row over the button row (§7)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-bottom {
+      position: absolute;
+      inset-inline: var(--usher-inset);
+      bottom: var(--usher-inset-bottom);
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+    }
+
+    .usher-content:not([data-started]) .usher-bottom {
+      visibility: var(--media-controls-before-start, hidden);
+    }
+
+    .usher-line-row {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--media-spacing) * 4);
+      height: var(--usher-line-hit);
+      padding-inline: var(--usher-glyph-inset);
+    }
+
+    .usher-duration {
+      display: block;
+      flex: none;
+      color: var(--usher-print-muted);
+      font-size: var(--usher-text-label);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .usher-duration[data-unavailable] {
+      display: none;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * The line (§4): 4px, round caps, 2px gaps between chapters. Played is print, unplayed 50%, buffered 72%.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-slider {
+      --usher-at: var(--media-slider-fill, 0%);
+      position: relative;
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 100%;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .usher-slider[data-dragging] {
+      --usher-at: var(--media-slider-pointer, 0%);
+    }
+
+    .usher-slider[data-disabled] {
+      cursor: default;
+    }
+
+    .usher-chapters {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    /* One clone per chapter (and per gap): the full slider area, holding its stretch of line and its name. */
+    .usher-chapter {
+      --usher-gap-start: calc(var(--usher-chapter-gap) / 2);
+      --usher-gap-end: calc(var(--usher-chapter-gap) / 2);
+      position: absolute;
+      inset: 0;
+    }
+
+    .usher-chapter-line {
+      position: absolute;
+      inset-inline: 0;
+      top: calc(50% - var(--usher-line) / 2);
+      height: var(--usher-line);
+      clip-path: inset(
+        0 calc(100% - var(--media-slider-chapter-end, 100%) + var(--usher-gap-end)) 0
+          calc(var(--media-slider-chapter-start, 0%) + var(--usher-gap-start)) round calc(var(--usher-line) / 2)
+      );
+    }
+
+    .usher-chapter:first-of-type {
+      --usher-gap-start: 0px;
+    }
+
+    .usher-chapter:last-of-type {
+      --usher-gap-end: 0px;
+    }
+
+    .usher-track {
+      position: absolute;
+      inset: 0;
+      display: block;
+      background-color: var(--usher-line-unplayed);
+    }
+
+    .usher-buffer,
+    .usher-fill {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      display: block;
+    }
+
+    .usher-buffer {
+      width: var(--media-slider-buffer, 0%);
+      background-color: var(--usher-line-buffered);
+    }
+
+    .usher-fill {
+      width: var(--usher-at);
+      background-color: var(--usher-print);
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * The marker (§4, §9.1). The thumb is an invisible box that the marker sizes; it carries role="slider" and the
+     * ring. left: p; translate: −p puts the marker's edges on the line's ends at 0% and 100% without knowing its width.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-thumb {
+      position: absolute;
+      top: 50%;
+      left: var(--usher-at);
+      translate: calc(var(--usher-at) * -1) -50%;
+      display: block;
+      border-radius: var(--usher-radius);
+    }
+
+    .usher-marker {
+      display: flex;
+      align-items: center;
+      gap: var(--media-spacing);
+      height: var(--usher-marker);
+      padding-inline: var(--usher-marker-pad);
+      border-radius: inherit;
+      color: var(--usher-accent-ink);
+      background-color: var(--usher-accent);
+      box-shadow:
+        0 0 0 1px color-mix(in oklab, var(--usher-accent-ink) 24%, transparent),
+        0 1px 2px rgb(0 0 0 / 0.3),
+        0 4px 12px rgb(0 0 0 / 0.2);
+      font-size: var(--usher-text-marker);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .usher-marker-time {
+      display: block;
+    }
+
+    /* While dragging, the marker follows the pointer, so it shows the pointer's time rather than waiting for the seek. */
+    .usher-marker-pointer,
+    .usher-slider[data-dragging] .usher-marker-time {
+      display: none;
+    }
+
+    .usher-slider[data-dragging] .usher-marker-pointer {
+      display: block;
+    }
+
+    /* Speed other than 1×: the rate after the time, behind a 1px divider (§10). */
+    .usher-marker-rate {
+      display: block;
+      margin-inline-start: var(--media-spacing);
+      padding-inline-start: calc(var(--media-spacing) * 1.5);
+      border-inline-start: 1px solid color-mix(in oklab, var(--usher-accent-ink) 32%, transparent);
+      font-size: var(--usher-text-small);
+      line-height: calc(var(--media-spacing) * 4);
+    }
+
+    /*
+     * Typed time (§9.3): while editing, the marker becomes a field in the same place, on the same edge formula, the same
+     * size. It reads as "type a destination": hollow (sheet fill, a 2px accent outline drawn inside the box, so nothing
+     * shifts), white numerals and an accent caret. The field is as wide as the longest time this media shows
+     * (--usher-field-chars, set by usher-time-field), at 16px so iOS does not zoom. A bad entry is marked by shape as
+     * well as aria-invalid: a wavy underline under the text.
+     */
+    .usher-field {
+      position: absolute;
+      top: 50%;
+      left: var(--usher-at);
+      translate: calc(var(--usher-at) * -1) -50%;
+      z-index: 1;
+      display: block;
+    }
+
+    .usher-slider[data-editing] .usher-marker {
+      visibility: hidden;
+    }
+
+    .usher-field-input {
+      --usher-field-edge: inset 0 0 0 2px var(--usher-accent);
+      display: block;
+      box-sizing: content-box;
+      width: calc(var(--usher-field-chars, 4) * 1ch + var(--media-spacing));
+      height: var(--usher-marker);
+      padding: 0 var(--usher-marker-pad);
+      border: 0;
+      border-radius: var(--usher-radius);
+      color: var(--usher-sheet-text);
+      background-color: var(--usher-sheet);
+      box-shadow:
+        var(--usher-field-edge),
+        0 1px 2px rgb(0 0 0 / 0.3),
+        0 4px 12px rgb(0 0 0 / 0.2);
+      caret-color: var(--usher-accent);
+      font: inherit;
+      font-size: max(16px, var(--usher-text-marker));
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: var(--usher-marker);
+      text-align: center;
+      cursor: text;
+      outline: none;
+    }
+
+    .usher-field-input::selection {
+      color: var(--usher-sheet-text);
+      background-color: color-mix(in oklab, var(--usher-accent) 40%, transparent);
+    }
+
+    .usher-field-input:focus-visible {
+      outline: 2px solid var(--media-ring);
+      outline-offset: 1px;
+      box-shadow:
+        var(--usher-field-edge),
+        0 0 0 1px var(--usher-ring-edge),
+        0 0 0 4px var(--usher-ring-edge);
+    }
+
+    .usher-field-input[aria-invalid="true"] {
+      text-decoration: underline wavy currentColor 1.5px;
+      text-underline-offset: 2px;
+    }
+
+    /*
+     * Scrub lift (§9.2): while dragging, the marker lifts and doubles, scaled about its anchor on the line so its edges
+     * still meet the line's ends, with a 2px print stem down to the line. The button row fades and the chapter names
+     * appear under the line. Pointer only: keyboard focus on the thumb shows the preview and hides nothing.
+     */
+    .usher-marker {
+      transform-origin: var(--usher-at) 100%;
+      transition:
+        translate var(--media-duration-fast) var(--usher-ease-exit),
+        scale var(--media-duration-fast) var(--usher-ease-exit);
+    }
+
+    /* The marker's bottom edge sits half a marker below the line; lift it to --usher-lift above the line. */
+    .usher-slider[data-dragging] .usher-marker {
+      translate: 0 calc((var(--usher-marker) / 2 + var(--usher-lift)) * -1);
+      scale: 2;
+      transition-duration: var(--media-duration);
+      transition-timing-function: var(--usher-ease-enter);
+    }
+
+    /* Gap between the line and the lifted marker: its centre then sits about 56px above the line. */
+    .usher-slider {
+      --usher-lift: calc(var(--media-spacing) * 6);
+    }
+
+    /* The stem, under the marker (the thumb's translate makes it a stacking context, so -1 stays inside it). */
+    .usher-thumb::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      bottom: 50%;
+      left: var(--usher-at);
+      width: 2px;
+      height: calc(var(--usher-marker) / 2 + var(--usher-lift));
+      margin-inline-start: -1px;
+      background-color: var(--usher-print);
+      box-shadow: 0 0 0 1px rgb(0 0 0 / 0.24);
+      opacity: 0;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-exit);
+    }
+
+    .usher-slider[data-dragging] .usher-thumb::after {
+      opacity: 1;
+    }
+
+    .usher-content:has(.usher-slider[data-dragging]) .usher-row {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Chapter names under the line while scrubbing, each under its own stretch; the one under the pointer is bright. */
+    .usher-chapter-name {
+      position: absolute;
+      top: calc(50% + var(--usher-line) / 2 + var(--media-spacing) * 3);
+      left: var(--media-slider-chapter-start, 0%);
+      width: var(--media-slider-chapter-width, 100%);
+      display: block;
+      padding-inline: var(--media-spacing);
+      overflow: hidden;
+      color: var(--usher-print-muted);
+      font-size: var(--usher-text-small);
+      font-weight: 500;
+      line-height: calc(var(--media-spacing) * 4);
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-exit);
+    }
+
+    .usher-chapter[data-highlighted] .usher-chapter-name,
+    .usher-chapters:not(:has([data-highlighted])) .usher-chapter[data-active] .usher-chapter-name {
+      color: var(--usher-print);
+      font-weight: 600;
+    }
+
+    .usher-slider[data-dragging] .usher-chapter-name:not([data-narrow], :empty) {
+      opacity: 1;
+      transition-timing-function: var(--usher-ease-enter);
+    }
+
+    /* The hollow marker: the pointer's time at its place on the line (§2: hollow means elsewhere). */
+    .usher-ghost {
+      position: absolute;
+      top: 50%;
+      left: var(--media-slider-pointer, 0%);
+      translate: calc(var(--media-slider-pointer, 0%) * -1) -50%;
+      display: flex;
+      align-items: center;
+      height: var(--usher-hollow);
+      padding-inline: calc(var(--media-spacing) * 2 - 1px);
+      border: 1px solid var(--usher-print);
+      border-radius: var(--usher-hollow-radius);
+      color: var(--usher-print);
+      background-color: var(--usher-hollow-fill);
+      font-size: var(--usher-text-small);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-exit);
+    }
+
+    .usher-slider[data-pointing]:not([data-dragging]) .usher-ghost {
+      opacity: 1;
+    }
+
+    /* Hover preview: thumbnail and chapter title on one sheet, 8px above the marker. */
+    .usher-preview {
+      bottom: calc(50% + var(--usher-marker) / 2 + var(--media-spacing) * 2);
+      display: block;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--media-duration-fast) var(--usher-ease-exit);
+    }
+
+    .usher-slider:is([data-pointing], [data-dragging], :has(.usher-thumb:focus-visible)):not([data-disabled])
+      .usher-preview {
+      opacity: 1;
+      transition-timing-function: var(--usher-ease-enter);
+    }
+
+    /* While scrubbing, the thumbnail sits above the lifted marker. */
+    .usher-slider[data-dragging] .usher-preview {
+      bottom: calc(50% + var(--usher-lift) + var(--usher-marker) * 2 + var(--media-spacing) * 2);
+    }
+
+    /* While editing a time, no preview. */
+    .usher-slider[data-editing] .usher-preview {
+      opacity: 0;
+    }
+
+    .usher-preview-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--usher-sheet-pad);
+      border-radius: var(--usher-sheet-radius);
+      background-color: var(--usher-sheet);
+      box-shadow: var(--usher-sheet-edge), var(--usher-sheet-shadow);
+    }
+
+    .usher-preview-card:not(:has(.usher-thumbnail:not([data-hidden]), .usher-preview-chapter:not(:empty))) {
+      display: none;
+    }
+
+    .usher-thumbnail {
+      display: block;
+      max-width: var(--usher-thumbnail-width);
+      max-height: var(--usher-thumbnail-height);
+      overflow: hidden;
+      border-radius: var(--usher-radius);
+      background-color: #000;
+    }
+
+    .usher-thumbnail[data-hidden] {
+      display: none;
+    }
+
+    .usher-thumbnail-image {
+      display: block;
+    }
+
+    /* Two lines at the card's width, then an ellipsis. */
+    .usher-preview-chapter {
+      display: -webkit-box;
+      max-width: calc(var(--usher-thumbnail-width) - var(--media-spacing) * 4);
+      margin: calc(var(--media-spacing) * 1.5) calc(var(--media-spacing) * 2) var(--media-spacing);
+      overflow: hidden;
+      color: var(--usher-sheet-text);
+      font-size: var(--usher-text-small);
+      font-weight: 500;
+      line-height: 1.3;
+      text-align: center;
+      text-wrap: balance;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    .usher-preview-chapter:empty {
+      display: none;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Button row (§7): play, mute, volume, chapter | captions, settings, pip, cast, airplay, fullscreen
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-row,
+    .usher-row-start,
+    .usher-row-end {
+      display: flex;
+      align-items: center;
+    }
+
+    .usher-row {
+      justify-content: space-between;
+      height: var(--usher-button);
+    }
+
+    .usher-row-start {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .usher-row-end {
+      flex: none;
+    }
+
+    /* RTL keeps the physical order of the line and the row; text, menus and chevrons still follow the direction. */
+    :is(.usher-line-row, .usher-row, .usher-row-start, .usher-row-end):where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      flex-direction: row-reverse;
+    }
+
+    /*
+     * Volume: a 4px line with a 12px bead, on the same edge formula as the marker. Inline at 64px from 512px; below
+     * that, the same slider fills a page of the settings menu. While pointed at, dragged or focused, the bead becomes
+     * a hollow marker with the level (hollow: a value being set, §2).
+     */
+    .usher-volume {
+      --usher-volume-at: var(--media-slider-fill, 0%);
+      position: relative;
+      display: block;
+      flex: none;
+      height: var(--usher-button);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .usher-volume[data-dragging] {
+      --usher-volume-at: var(--media-slider-pointer, 0%);
+    }
+
+    .usher-volume-inline {
+      width: var(--usher-volume-line);
+      /* Physical, like the slider itself: the row keeps its left-to-right order in RTL. */
+      margin: 0 calc(var(--media-spacing) * 3) 0 var(--media-spacing);
+    }
+
+    .usher-volume-track {
+      position: absolute;
+      inset-inline: 0;
+      top: calc(50% - var(--usher-line) / 2);
+      display: block;
+      height: var(--usher-line);
+      overflow: hidden;
+      border-radius: calc(var(--usher-line) / 2);
+      background-color: var(--usher-line-unplayed);
+    }
+
+    .usher-volume-fill {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      display: block;
+      width: var(--usher-volume-at);
+      background-color: var(--usher-print);
+    }
+
+    .usher-volume-thumb {
+      position: absolute;
+      top: 50%;
+      left: var(--usher-volume-at);
+      translate: calc(var(--usher-volume-at) * -1) -50%;
+      display: flex;
+      align-items: center;
+      width: var(--usher-bead);
+      height: var(--usher-bead);
+      border-radius: calc(var(--usher-radius) * 1000);
+      background-color: var(--usher-print);
+      box-shadow:
+        0 0 0 1px rgb(0 0 0 / 0.24),
+        0 1px 2px rgb(0 0 0 / 0.3);
+    }
+
+    .usher-volume-value {
+      display: none;
+    }
+
+    .usher-volume:is([data-pointing], [data-dragging], :has(.usher-volume-thumb:focus-visible)) .usher-volume-thumb {
+      width: auto;
+      height: var(--usher-hollow);
+      padding-inline: calc(var(--media-spacing) * 2 - 1px);
+      border: 1px solid var(--usher-print);
+      border-radius: var(--usher-hollow-radius);
+      color: var(--usher-print);
+      background-color: var(--usher-hollow-fill);
+      box-shadow: none;
+      font-size: var(--usher-text-small);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .usher-volume:is([data-pointing], [data-dragging], :has(.usher-volume-thumb:focus-visible)) .usher-volume-value {
+      display: block;
+    }
+
+    /* The volume page of the settings menu (below 512px, and only where volume can be set). */
+    .usher-menu-volume-row {
+      display: flex;
+      align-items: center;
+      min-height: var(--usher-button);
+      padding-inline: calc(var(--media-spacing) * 3);
+    }
+
+    .usher-volume-menu {
+      flex: 1 1 auto;
+      min-width: calc(var(--media-spacing) * 40);
+    }
+
+    .usher-volume-menu .usher-volume-track {
+      background-color: rgb(255 255 255 / 0.24);
+    }
+
+    .usher-volume-menu .usher-volume-thumb {
+      box-shadow: none;
+    }
+
+
+    /* Chapter button: the current chapter's title, capped at 30% of the player. */
+    .usher-chapter-slot {
+      display: contents;
+    }
+
+    .usher-chapter-button {
+      display: inline-flex;
+      flex: 0 1 auto;
+      align-items: center;
+      gap: var(--media-spacing);
+      width: auto;
+      min-width: 0;
+      max-width: 30cqi;
+      padding-inline: calc(var(--media-spacing) * 2) calc(var(--media-spacing) * 1.5);
+      font-size: var(--usher-text-label);
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .usher-chapter-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .usher-chapter-chevron {
+      rotate: -90deg;
+    }
+
+    .usher-gear {
+      transition: rotate var(--media-duration) var(--usher-ease-enter);
+    }
+
+    .usher-settings[aria-expanded="true"] > .usher-gear {
+      rotate: 60deg;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Popups: tooltips and the settings menu, solid sheets that grow from their trigger (§10, §11)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .media-popup {
+      margin: 0;
+      border: 0;
+      overflow: visible;
+      color: var(--usher-sheet-text);
+      background-color: var(--usher-sheet);
+      box-shadow: var(--usher-sheet-edge), var(--usher-sheet-shadow);
+      transform-origin: bottom;
+      transition-property: opacity, scale;
+      transition-duration: var(--media-duration);
+      transition-timing-function: var(--usher-ease-enter);
+    }
+
+    .media-popup[data-ending-style] {
+      transition-duration: var(--media-duration-instant);
+      transition-timing-function: var(--usher-ease-exit);
+    }
+
+    .media-popup:is([data-starting-style], [data-ending-style]) {
+      opacity: 0;
+      scale: var(--media-hidden-popup-scale);
+    }
+
+    .media-popup[data-side="bottom"] {
+      transform-origin: top;
+    }
+
+    .media-popup[data-side="top"][data-align="end"] {
+      transform-origin: bottom right;
+    }
+
+    .media-popup[data-side="top"][data-align="start"] {
+      transform-origin: bottom left;
+    }
+
+    .media-popup[data-side="top"][data-align="end"]:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      transform-origin: bottom left;
+    }
+
+    .media-popup[data-side="top"][data-align="start"]:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      transform-origin: bottom right;
+    }
+
+    /* Floating sheets clear the line: like the preview, they sit 8px above the line row, never on the line. (derived) */
+    .usher-tooltip {
+      --media-tooltip-side-offset: calc(var(--usher-line-hit) + var(--media-spacing) * 2);
+      --media-popup-side-offset: var(--media-tooltip-side-offset);
+      padding: var(--media-spacing) calc(var(--media-spacing) * 2);
+      border-radius: var(--usher-radius);
+      font-size: var(--usher-text-small);
+      font-weight: 500;
+      line-height: calc(var(--media-spacing) * 4);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .usher-tooltip[data-open] {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--media-spacing) * 2);
+    }
+
+    /* Keys are hollow chips: hollow means elsewhere. */
+    .usher-shortcut {
+      min-width: calc(var(--media-spacing) * 4);
+      padding-inline: var(--media-spacing);
+      border: 1px solid var(--usher-sheet-secondary);
+      border-radius: calc(var(--usher-radius) / 2);
+      color: var(--usher-sheet-secondary);
+      font-size: calc(var(--media-spacing) * 2.75);
+      font-weight: 500;
+      line-height: calc(var(--media-spacing) * 3.5 - 2px);
+      text-align: center;
+    }
+
+    /*
+     * Settings menu: a solid sheet, radius min(1.5R, R + 4px), 4px padding, rows at radius R (concentric). It grows from
+     * the gear (origin from data-side/data-align above), in 150ms and out in 50ms; pages slide and the sheet resizes to
+     * each page over 250ms. All transitions, so a menu closed mid-flight retargets.
+     */
+    .usher-menu {
+      --media-popover-side-offset: calc(var(--usher-line-hit) + var(--media-spacing) * 2);
+      --media-popup-side-offset: var(--media-popover-side-offset);
+      width: var(--media-menu-width);
+      min-width: calc(var(--media-spacing) * 52);
+      max-width: min(var(--media-menu-available-width, 100vw), calc(var(--media-spacing) * 80));
+      height: var(--media-menu-height);
+      max-height: min(var(--media-menu-available-height, 100vh), calc(var(--media-spacing) * 90));
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      border-radius: var(--usher-sheet-radius);
+      font-size: var(--usher-text-menu);
+      font-weight: 500;
+      line-height: 1.25;
+      transition-property: opacity, scale, width, height;
+      transition-duration: var(--media-duration), var(--media-duration), var(--media-duration-menu), var(--media-duration-menu);
+    }
+
+    /* Short players: the sheet may cover the line rather than lose its rows. */
+    @container media-root (width <= 384px) {
+      .usher-menu {
+        --media-popover-side-offset: calc(var(--media-spacing) * 2);
+      }
+    }
+
+    .media-menu-content {
+      position: absolute;
+      inset-inline: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+      padding: var(--usher-sheet-pad);
+      overflow: auto;
+      overscroll-behavior: none;
+      outline: none;
+      transition:
+        translate var(--media-duration-menu) var(--usher-ease-enter),
+        opacity var(--media-duration-menu) var(--usher-ease-enter),
+        visibility 0s;
+    }
+
+    .media-menu-content:not([data-submenu])[data-child-open] {
+      visibility: hidden;
+      translate: -100%;
+      opacity: 0;
+      transition-delay: 0s, 0s, var(--media-duration-menu);
+    }
+
+    .media-menu-content[data-submenu]:is([data-starting-style], [data-ending-style]) {
+      translate: 100%;
+      opacity: 0;
+    }
+
+    .media-menu-content:not([data-submenu])[data-child-open]:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      translate: 100%;
+    }
+
+    .media-menu-content[data-submenu]:is([data-starting-style], [data-ending-style]):where(
+        :dir(rtl),
+        [dir="rtl"],
+        [dir="rtl"] *
+      ) {
+      translate: -100%;
+    }
+
+    .media-menu-item {
+      position: relative;
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: calc(var(--media-spacing) * 3);
+      min-height: var(--usher-button, calc(var(--media-spacing) * 10));
+      padding-inline: calc(var(--media-spacing) * 3);
+      border-radius: var(--usher-radius);
+      text-align: start;
+      white-space: nowrap;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .media-menu-item[data-highlighted] {
+      background-color: rgb(255 255 255 / 0.1);
+    }
+
+    /* Where anchor positioning exists, one highlight slides between rows under the pointer (keyboard moves are instant). */
+    @supports (top: anchor(top)) {
+      .media-menu-content {
+        anchor-scope: --usher-menu-highlight;
+      }
+
+      .media-menu-content::before {
+        content: "";
+        position: absolute;
+        position-anchor: --usher-menu-highlight;
+        inset: anchor(inside);
+        border-radius: var(--usher-radius);
+        background-color: rgb(255 255 255 / 0.1);
+        pointer-events: none;
+        transition: inset var(--media-duration-fast) var(--usher-ease-enter);
+      }
+
+      .media-menu-content:has([data-highlighted=""])::before {
+        transition-duration: 0s;
+      }
+
+      .media-menu-item[data-highlighted] {
+        anchor-name: --usher-menu-highlight;
+        background-color: transparent;
+      }
+    }
+
+    /* Rows the menu skips are not drawn either (the Volume row where the inline line shows; usher-volume-route). */
+    .media-menu-item:is([data-availability="unavailable"], [data-availability="unsupported"], [data-hidden]) {
+      display: none;
+    }
+
+    .media-menu-icon {
+      color: var(--usher-sheet-secondary);
+    }
+
+    .media-menu-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--media-spacing);
+      min-width: 0;
+      margin-inline-start: auto;
+      padding-inline-start: calc(var(--media-spacing) * 4);
+      color: var(--usher-sheet-secondary);
+    }
+
+    /* Room for long values ("Automatisch (1080p)") inside the 320px sheet. */
+    .media-menu-hint-label {
+      max-width: calc(var(--media-spacing) * 36);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-menu-forward:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      scale: -1 1;
+    }
+
+    .media-menu-back-chevron {
+      color: var(--usher-sheet-secondary);
+      scale: -1 1;
+    }
+
+    .media-menu-back-chevron:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+      scale: 1;
+    }
+
+    .media-menu-separator {
+      display: block;
+      flex: none;
+      height: 1px;
+      margin: var(--media-spacing) calc(var(--media-spacing) * 3);
+      background-color: rgb(255 255 255 / 0.1);
+    }
+
+    .media-menu-radio-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Checked rows: the check and a heavier weight, never colour alone. */
+    .media-menu-radio-item[aria-checked="true"] {
+      font-weight: 600;
+    }
+
+    .media-menu-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-menu-tier {
+      margin-inline-start: 2px;
+      color: var(--usher-sheet-secondary);
+      font-size: calc(var(--media-spacing) * 2.5);
+      vertical-align: super;
+    }
+
+    .media-menu-badge {
+      padding-inline: var(--media-spacing);
+      border: 1px solid var(--usher-sheet-secondary);
+      border-radius: calc(var(--usher-radius) / 2);
+      color: var(--usher-sheet-secondary);
+      font-size: calc(var(--media-spacing) * 2.5);
+      font-weight: 600;
+      line-height: calc(var(--media-spacing) * 3.5);
+    }
+
+    .media-menu-badge:empty {
+      display: none;
+    }
+
+    .media-menu-indicator {
+      display: block;
+      flex: none;
+      margin-inline-start: auto;
+      opacity: 0;
+    }
+
+    .media-menu-radio-item[aria-checked="true"] .media-menu-indicator {
+      opacity: 1;
+    }
+
+    /*
+     * Chapter list (opened by the chapter button): each row is the chapter's start time in a chip and its title.
+     * Hollow chips are elsewhere; the current chapter's chip is solid accent, its title heavier, and the row carries
+     * aria-current. Titles wrap to two lines.
+     */
+    .usher-chapter-menu {
+      max-width: min(var(--media-menu-available-width, 100vw), calc(var(--media-spacing) * 80));
+    }
+
+    /* A real box: the menu sizes itself from its page's children. */
+    .usher-chapter-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .usher-chapter-row {
+      gap: calc(var(--media-spacing) * 3);
+      min-height: var(--usher-button, calc(var(--media-spacing) * 10));
+      padding-block: var(--media-spacing);
+      white-space: normal;
+    }
+
+    .usher-chapter-row-time {
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      min-width: calc(var(--usher-chip-chars, 4) * 1ch + var(--media-spacing) * 2);
+      height: var(--usher-hollow);
+      padding-inline: calc(var(--media-spacing) * 1.5);
+      border: 1px solid var(--usher-sheet-secondary);
+      border-radius: var(--usher-hollow-radius);
+      font-size: var(--usher-text-small);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+
+    .usher-chapter-row[aria-current="true"] .usher-chapter-row-time {
+      border-color: transparent;
+      color: var(--usher-accent-ink);
+      background-color: var(--usher-accent);
+    }
+
+    .usher-chapter-row[aria-current="true"] {
+      font-weight: 600;
+    }
+
+    .usher-chapter-row-title {
+      display: -webkit-box;
+      min-width: 0;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Input feedback: a print icon on a shade disc for toggles, hollow markers for values (§10)
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-indicators {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      pointer-events: none;
+    }
+
+    .usher-rate-slot {
+      display: contents;
+    }
+
+    :is(.usher-indicators, .usher-rate-slot) > :not(.usher-rate-slot) {
+      grid-area: 1 / 1;
+      transition:
+        opacity var(--media-duration-indicator) var(--usher-ease-enter),
+        scale var(--media-duration-indicator) var(--usher-ease-enter);
+    }
+
+    :is(.usher-indicators, .usher-rate-slot) > :is([data-starting-style], [data-ending-style]) {
+      opacity: 0;
+      scale: var(--media-hidden-indicator-scale);
+    }
+
+    .usher-status {
+      display: grid;
+      place-items: center;
+      place-self: center;
+      width: calc(var(--media-spacing) * 18);
+      height: calc(var(--media-spacing) * 18);
+      border-radius: calc(var(--usher-radius) * 1000);
+      color: var(--usher-print);
+      background-color: var(--usher-disc);
+    }
+
+    .usher-status > .usher-icon {
+      grid-area: 1 / 1;
+      width: calc(var(--usher-icon) * 2);
+      height: calc(var(--usher-icon) * 2);
+      display: none;
+    }
+
+    .usher-status[data-status="play"] > .usher-status-play,
+    .usher-status[data-status="pause"] > .usher-status-pause,
+    .usher-status[data-status="captions-on"] > .usher-status-captions-on,
+    .usher-status[data-status="captions-off"] > .usher-status-captions-off,
+    .usher-status[data-status="fullscreen"] > .usher-status-fullscreen,
+    .usher-status[data-status="exit-fullscreen"] > .usher-status-exit-fullscreen,
+    .usher-status[data-status="pip"] > .usher-status-pip,
+    .usher-status[data-status="exit-pip"] > .usher-status-exit-pip {
+      display: block;
+    }
+
+    .usher-hollow {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--media-spacing) * 1.5);
+      height: var(--usher-hollow);
+      padding-inline: calc(var(--media-spacing) * 2 - 1px);
+      border: 1px solid var(--usher-print);
+      border-radius: var(--usher-hollow-radius);
+      color: var(--usher-print);
+      background-color: var(--usher-hollow-fill);
+      font-size: var(--usher-text-small);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums lining-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    /* Volume and speed: a hollow marker, top centre. */
+    .usher-volume-indicator,
+    .usher-rate-indicator {
+      place-self: start center;
+      margin-top: var(--usher-inset-top, calc(var(--media-spacing) * 4));
+    }
+
+    .usher-volume-indicator-fill {
+      display: contents;
+    }
+
+    .usher-volume-indicator .usher-icon {
+      display: none;
+    }
+
+    .usher-volume-indicator[data-level="high"] .usher-volume-indicator-high,
+    .usher-volume-indicator[data-level="low"] .usher-volume-indicator-low,
+    .usher-volume-indicator[data-level="off"] .usher-volume-indicator-off {
+      display: block;
+    }
+
+    /* Seeking is physical, like the line: forward feedback sits on the right and backward on the left, in RTL too. */
+    .usher-seek-indicator {
+      align-self: center;
+      justify-self: right;
+      margin: 0 calc(var(--media-spacing) * 8);
+    }
+
+    .usher-seek-indicator[data-direction="backward"] {
+      justify-self: left;
+    }
+
+    .usher-seek-indicator[data-direction="backward"] > .usher-icon {
+      scale: -1 1;
+    }
+
+    .usher-indicator-value {
+      display: block;
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Error dialog (§10): a centred sheet; the close button is an accent marker. Text is the translated default.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    .usher-dialog-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      display: block;
+      background-color: rgb(0 0 0 / 0.64);
+    }
+
+    .usher-dialog-backdrop[data-scope="document"] {
+      position: fixed;
+    }
+
+    .usher-dialog {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 50;
+      display: grid;
+      gap: calc(var(--media-spacing) * 2);
+      width: calc(100% - var(--media-spacing) * 8);
+      max-width: calc(var(--media-spacing) * 90);
+      max-height: calc(100% - var(--media-spacing) * 8);
+      padding: calc(var(--media-spacing) * 4);
+      overflow: auto;
+      translate: -50% -50%;
+      border-radius: min(calc(var(--usher-radius) * 3), calc(var(--usher-radius) + var(--media-spacing) * 4));
+      color: var(--usher-sheet-text);
+      background-color: var(--usher-sheet);
+      box-shadow: var(--usher-sheet-edge), var(--usher-sheet-shadow);
+      outline: none;
+    }
+
+    .usher-dialog[data-scope="document"] {
+      position: fixed;
+      max-height: calc(100dvh - var(--media-spacing) * 8);
+    }
+
+    .usher-dialog-backdrop:not([data-open]),
+    .usher-dialog:not([data-open]) {
+      display: none;
+    }
+
+    .usher-dialog-title {
+      display: block;
+      font-size: var(--usher-text-dialog-title);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .usher-dialog-description {
+      display: block;
+      color: var(--usher-sheet-secondary);
+      font-size: var(--usher-text-menu);
+      font-weight: 400;
+      line-height: 1.45;
+    }
+
+    .usher-dialog-close {
+      justify-self: end;
+      width: auto;
+      min-width: calc(var(--media-spacing) * 16);
+      margin-top: calc(var(--media-spacing) * 2);
+      padding-inline: calc(var(--media-spacing) * 4);
+      color: var(--usher-accent-ink);
+      background-color: var(--usher-accent);
+      box-shadow: 0 0 0 1px color-mix(in oklab, var(--usher-accent-ink) 24%, transparent);
+      font-size: var(--usher-text-menu);
+      font-weight: 600;
+    }
+
+    @media (hover: hover) {
+      .usher-dialog-close:hover {
+        background-color: color-mix(in oklab, var(--usher-accent) 90%, var(--usher-accent-ink));
+      }
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Layouts (§7). Container queries on the player; portrait and square on the frame. Play and mute never drop.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    /* Medium: volume line from 512, pip from 448. */
+    @container media-root (width < 512px) {
+      .usher-volume-inline {
+        display: none;
+      }
+    }
+
+    @container media-root (width < 448px) {
+      .usher-pip {
+        display: none;
+      }
+    }
+
+    /* On touch the chapter button needs the room the 48px buttons take below 576. */
+    @media (pointer: coarse) {
+      @container media-root (width < 576px) {
+        .usher-chapter-slot {
+          display: none;
+        }
+      }
+    }
+
+    /* Narrow: title, chapter, volume, pip, cast and AirPlay drop; while scrubbing only the current chapter is named. */
+    @container media-root (width <= 384px) {
+      .usher-chapters:has([data-highlighted]) .usher-chapter:not([data-highlighted]) .usher-chapter-name,
+      .usher-chapters:not(:has([data-highlighted])) .usher-chapter:not([data-active]) .usher-chapter-name {
+        display: none;
+      }
+
+      /* The one name left is centred under the whole line, however short its own stretch. */
+      .usher-slider[data-dragging] .usher-chapter-name:not(:empty) {
+        left: 0;
+        width: 100%;
+        opacity: 1;
+      }
+
+      .usher-title,
+      .usher-chapter-slot,
+      .usher-volume-inline,
+      .usher-pip,
+      .usher-cast,
+      .usher-airplay,
+      .usher-shade::before {
+        display: none;
+      }
+    }
+
+    /*
+     * Tiny: the marker is a 12px bead until the line is pointed at, dragged or focused; captions and settings drop.
+     * On touch the gear stays down to 208px, because its menu holds the only volume control a finger can reach there;
+     * its menu then sits right on the row and scrolls inside. (derived)
+     */
+    @container media-root (width <= 240px) {
+      .usher-captions,
+      .usher-settings {
+        display: none;
+      }
+
+      .usher-menu {
+        --media-popover-side-offset: 0px;
+      }
+
+      .usher-slider:not([data-interactive]) .usher-marker {
+        width: var(--usher-bead);
+        height: var(--usher-bead);
+        padding: 0;
+        border-radius: calc(var(--usher-radius) * 1000);
+      }
+
+      .usher-slider:not([data-interactive]) .usher-marker > * {
+        display: none;
+      }
+    }
+
+    /* The duration stays while the line keeps about 160px. */
+    @container media-root (width < 232px) {
+      .usher-duration {
+        display: none;
+      }
+    }
+
+    @media (pointer: coarse) {
+      /* Four 48px targets plus the 8px insets need 208px. */
+      @container media-root (208px <= width <= 240px) {
+        .usher-settings {
+          display: grid;
+        }
+      }
+    }
+
+    @container media-root (width < 200px) {
+      .usher-fullscreen {
+        display: none;
+      }
+    }
+
+    /* Short frames: the lift is 1.5× with a smaller gap, and the scrub card is the thumbnail alone (names are under
+       the line), so card, marker and line fit in 180px. */
+    @container usher-frame (height < 320px) {
+      .usher-slider {
+        --usher-lift: calc(var(--media-spacing) * 3);
+      }
+
+      .usher-slider[data-dragging] .usher-marker {
+        scale: 1.5;
+      }
+
+      .usher-slider[data-dragging] .usher-preview {
+        bottom: calc(50% + var(--usher-lift) + var(--usher-marker) * 1.5 + var(--media-spacing) * 2);
+      }
+
+      .usher-slider[data-dragging] .usher-preview-chapter {
+        display: none;
+      }
+    }
+
+    /* Portrait and square have height to spare, so the title comes back at every width. (derived) */
+    @container usher-frame (aspect-ratio <= 1) {
+      .usher-title {
+        display: block;
+      }
+
+      :where(.usher-frame:has(.usher-title:not([data-hidden]))) > .usher-shade::before {
+        display: block;
+      }
+    }
+
+    /* Touch in portrait and square: back 10, play, forward 10 as print on shade discs, once playback has started. */
+    @media (pointer: coarse) {
+      @container usher-frame (aspect-ratio <= 1) {
+        .usher-center[data-started] > .usher-transport,
+        .usher-hero[data-started]:not([data-ended]) {
+          visibility: visible;
+          opacity: 1;
+          transition-duration: var(--media-duration-fast), 0s, var(--media-duration-fast);
+          transition-delay: 0s;
+        }
+
+        .usher-hero[data-started]:not([data-ended]) {
+          width: calc(var(--media-spacing) * 18);
+          min-width: 0;
+          height: calc(var(--media-spacing) * 18);
+          padding: 0;
+          border-radius: calc(var(--usher-radius) * 1000);
+          color: var(--usher-print);
+          background-color: var(--usher-disc);
+          box-shadow: none;
+        }
+
+        .usher-hero[data-started]:not([data-ended]) .usher-hero-glyph > .usher-icon {
+          width: calc(var(--usher-icon) * 2);
+          height: calc(var(--usher-icon) * 2);
+        }
+      }
+    }
+
+    /* ---------------------------------------------------------------------------------------------------------------
+     * Preferences: forced colours turn the band into a system surface; motion is collapsed by the tokens.
+     * ------------------------------------------------------------------------------------------------------------- */
+
+    @media (forced-colors: active) {
+      /* A plain system surface under the controls zone, no feather. */
+      .usher-shade::before,
+      .usher-shade::after {
+        forced-color-adjust: none;
+        background: linear-gradient(var(--usher-band-direction), Canvas var(--usher-band-solid), transparent 0);
+      }
+
+      .usher-shade::after {
+        --usher-band-solid: var(--usher-zone);
+      }
+
+      .usher-marker,
+      .usher-hero,
+      .usher-dialog-close {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+      }
+
+      .usher-fill,
+      .usher-volume-fill {
+        forced-color-adjust: none;
+        background-color: Highlight;
+      }
+
+      .usher-track,
+      .usher-volume-track {
+        forced-color-adjust: none;
+        background-color: GrayText;
+      }
+
+      .media-popup,
+      .usher-preview-card,
+      .usher-dialog {
+        outline: 1px solid CanvasText;
+      }
+
+      .media-menu-item[data-highlighted] {
+        forced-color-adjust: none;
+        color: HighlightText;
+        background-color: Highlight;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .media-button:active:not(:disabled, [aria-disabled="true"]) {
+        scale: none;
+      }
+
+      .usher-gear {
+        transition: none;
+      }
+    }
+  }
+}

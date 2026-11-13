@@ -1,0 +1,16 @@
+@layer base.theme, base.preset, base.preferences;
+
+@layer base.preset {
+  .media-skin:is([data-preset="video"], [data-preset="live-video"]) {
+    /* Hairline around the picture, so a bright frame keeps its edge on a light page. Light value for browsers
+       without `light-dark()`; see the `@supports` block below. */
+    --media-frame-border: var(--media-border-color, rgb(0 0 0 / 0.1));
+  }
+
+  /* Keep `light-dark()` behind this check so a build that lowers it cannot rewrite it. */
+  @supports (color: light-dark(red, red)) {
+    .media-skin:is([data-preset="video"], [data-preset="live-video"]) {
+      --media-frame-border: var(--media-border-color, light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.15)));
+    }
+  }
+}

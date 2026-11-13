@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usher icon sheet</title>
+<style>
+  :root {
+    --page: #111214;
+    --ink: #f2f2f2;
+    --muted: rgb(255 255 255 / 0.55);
+    --rule: rgb(255 255 255 / 0.1);
+    --accent: #ffd23f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--page);
+    color: var(--ink);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+  h2 { font-size: 14px; margin: 32px 0 10px; font-weight: 600; }
+  h2 small { font-weight: 400; color: var(--muted); margin-left: 8px; }
+  p.lede { margin: 0; color: var(--muted); max-width: 900px; }
+  .wrap { max-width: 1368px; margin: 0 auto; }
+
+  /* (a) actual size */
+  .strip { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 16px; border-radius: 12px; }
+  .strip.dark { background: radial-gradient(120% 140% at 30% 0%, #2a2f38 0%, #14161a 55%, #08090a 100%); color: #fff; }
+  .strip.light { background: #fff; color: #000; margin-top: 8px; }
+  .group { display: flex; gap: 0; }
+  .cell { width: 40px; text-align: center; }
+  .btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 8px; }
+  .btn svg { width: 18px; height: 18px; display: block; }
+  .cell .lab { font-size: 9px; line-height: 11px; height: 22px; opacity: 0.6; overflow: hidden; word-break: break-all; }
+  .strip.light .lab { opacity: 0.55; }
+
+  /* (b) 4x */
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .card { background: #1b1c1f; border-radius: 10px; padding: 10px; }
+  .card .name { font-size: 12px; margin-bottom: 6px; color: #ddd; }
+  .card .views { display: flex; gap: 6px; }
+  .view { width: 72px; height: 72px; position: relative; background: #000; }
+  .view svg { position: absolute; inset: 0; width: 72px; height: 72px; color: #fff; }
+  .view.grid::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(80 160 255 / 0.28) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(80 160 255 / 0.28) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+  .view .live { position: absolute; left: 8px; top: 8px; width: 56px; height: 56px; outline: 1px solid rgb(255 80 80 / 0.85); pointer-events: none; z-index: 2; }
+  .view .mid { position: absolute; left: 36px; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgb(255 210 63 / 0.6); z-index: 2; }
+  .view .midh { position: absolute; top: 36px; left: 0; right: 0; height: 0; border-top: 1px dashed rgb(255 210 63 / 0.6); z-index: 2; }
+  .view img.px { width: 72px; height: 72px; image-rendering: pixelated; display: block; }
+  .card .cap { display: flex; gap: 6px; font-size: 9px; color: #888; margin-top: 3px; }
+  .card .cap span { width: 72px; }
+
+  /* (c, d) frames */
+  .frames { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .frame { position: relative; height: 176px; border-radius: 12px; overflow: hidden; background-size: cover; background-position: center 78%; }
+  .frame.bright { background-image: url(frame-bright.jpg); }
+  .frame.dark { background-image: url(frame-dark.jpg); }
+  .frame.tall { height: 120px; }
+  .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 112px; background: linear-gradient(to bottom, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 0.17) 30%, rgb(0 0 0 / 0.44) 62%, rgb(0 0 0 / 0.58) 100%); }
+  .controls { position: absolute; left: 16px; right: 16px; bottom: 12px; color: #fff; }
+  .line { position: relative; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.5); margin: 0 0 14px; }
+  .line i { position: absolute; left: 0; top: 0; bottom: 0; width: 38%; border-radius: 2px; background: #fff; }
+  .row { display: flex; align-items: center; margin: 0 -4px; }
+  .row .btn { color: #fff; }
+  .row .btn.hover { background: rgb(255 255 255 / 0.16); }
+  .row .spacer { flex: 1; }
+  .vol { width: 64px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.5); margin: 0 12px 0 4px; position: relative; }
+  .vol i { position: absolute; inset: 0 30% 0 0; background: #fff; border-radius: 2px; }
+  .chap { font-size: 13px; font-weight: 500; margin-left: 4px; }
+  .allrow { position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; color: #fff; width: 640px; }
+  .rot60 svg { rotate: 60deg; }
+
+  /* (e) optical checks */
+  .checks { display: flex; flex-wrap: wrap; gap: 16px; }
+  .chk { background: #1b1c1f; border-radius: 10px; padding: 10px; }
+  .chk .name { font-size: 12px; color: #ddd; margin-bottom: 6px; }
+  .chk .pair { display: flex; gap: 8px; align-items: center; }
+  .big { width: 108px; height: 108px; position: relative; background: #000; }
+  .big svg { position: absolute; inset: 0; width: 108px; height: 108px; }
+  .big.grid::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(80 160 255 / 0.22) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(80 160 255 / 0.22) 1px, transparent 1px);
+    background-size: 6px 6px;
+  }
+  .big .midv { position: absolute; left: 54px; top: 0; bottom: 0; border-left: 1px dashed rgb(255 210 63 / 0.7); z-index: 2; }
+  .big .midh { position: absolute; top: 54px; left: 0; right: 0; border-top: 1px dashed rgb(255 210 63 / 0.7); z-index: 2; }
+  .disc { width: 72px; height: 72px; border-radius: 50%; background: rgb(0 0 0 / 0.55); display: grid; place-items: center; color: #fff; }
+  .disc svg { width: 36px; height: 36px; }
+  .discwrap { width: 108px; height: 108px; display: grid; place-items: center; background: url(frame-bright.jpg) center/cover; }
+  .seekbtn { position: relative; width: 40px; height: 40px; display: grid; place-items: center; color: #fff; }
+  .seekbtn .content { display: grid; position: relative; }
+  .seekbtn svg { width: 18px; height: 18px; grid-area: 1/1; }
+  .seekbtn .lbl { position: absolute; bottom: -3px; font-size: 9px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.05em; line-height: 1; }
+  .seekbtn.fwd .lbl { right: -1px; }
+  .seekbtn.back .lbl { left: -1px; }
+  .seekbtn.back svg { scale: -1 1; }
+  .zoom3 { zoom: 3; }
+  .menu { background: #1c1c1e; border-radius: 12px; padding: 4px; width: 240px; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1); }
+  .mi { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #fff; }
+  .mi svg { width: 18px; height: 18px; opacity: 0.7; flex: none; }
+  .mi .hint { margin-left: auto; color: rgb(255 255 255 / 0.64); display: flex; align-items: center; gap: 2px; }
+  .mi.sel { font-weight: 600; }
+  .mi .sp { width: 18px; flex: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Usher icons</h1>
+  <p class="lede">25 icons on an 18×18 grid, drawn for the size they render at. Live area 14×14 (red), circles and triangles overshoot to ~15.
+  Every bar and knock-out 2px on whole pixels; outer corners r1, containers r2, clearance cuts concentric. Solid means now or on, hollow means elsewhere or off.</p>
+
+  <h2>(a) Actual size <small>18px icons in 40px buttons — print on a video-like dark, and black on white</small></h2>
+  <div class="strip dark" id="a-dark"></div>
+  <div class="strip light" id="a-light"></div>
+
+  <h2>(b) 4× <small>vector on a 1px grid with the live area · 1× raster · 2× raster (as the browser actually paints it)</small></h2>
+  <div class="cards" id="b"></div>
+
+  <h2>(c, d) Over real frames, as they sit in the player <small>40px pitch; bright frame gets the shade band (scrim) like the skin</small></h2>
+  <div class="frames" id="cd"></div>
+
+  <h2>(e) Optical checks <small>6× vector with centre lines</small></h2>
+  <div class="checks" id="e"></div>
+
+  <div id="v-wrap" hidden>
+    <h2>(v) Variants under review</h2>
+    <div class="cards" id="v"></div>
+  </div>
+</div>
+<script>
+/*ICONS*/
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const btn = (name, extra = '') => el('div', 'btn ' + extra, ICONS[name]);
+
+// (a)
+for (const id of ['a-dark', 'a-light']) {
+  const strip = document.getElementById(id);
+  for (const grp of ORDER) {
+    const g = el('div', 'group');
+    for (const name of grp) {
+      const c = el('div', 'cell');
+      c.append(btn(name), el('div', 'lab', name));
+      g.append(c);
+    }
+    strip.append(g);
+  }
+}
+
+// (b)
+function raster(svgText, scale) {
+  const cv = document.createElement('canvas');
+  cv.width = 18 * scale; cv.height = 18 * scale;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const img = new Image();
+  const src = svgText.replace('fill="currentColor"', 'fill="#fff" width="18" height="18"');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+  const out = new Image();
+  out.className = 'px';
+  PENDING.push(img.decode().then(() => {
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    out.src = cv.toDataURL('image/png');
+    return out.decode();
+  }));
+  return out;
+}
+const PENDING = [];
+function card(name, svgText, host) {
+  const card = el('div', 'card');
+  card.append(el('div', 'name', name));
+  const views = el('div', 'views');
+  const v1 = el('div', 'view grid', svgText);
+  v1.append(el('div', 'live'), el('div', 'mid'), el('div', 'midh'));
+  const v2 = el('div', 'view'); v2.append(raster(svgText, 1));
+  const v3 = el('div', 'view'); v3.append(raster(svgText, 2));
+  views.append(v1, v2, v3);
+  card.append(views);
+  card.append(el('div', 'cap', '<span>vector</span><span>1× px</span><span>2× px</span>'));
+  host.append(card);
+}
+const B = document.getElementById('b');
+for (const grp of ORDER) for (const name of grp) card(name, ICONS[name], B);
+const V = document.getElementById('v');
+for (const [k, s] of Object.entries(VARIANTS)) card(k, s, V);
+if (Object.keys(VARIANTS).length) document.getElementById('v-wrap').hidden = false;
+window.rastersReady = Promise.all(PENDING).then(() => PENDING.length);
+
+// (c, d)
+const CD = document.getElementById('cd');
+function player(kind, state) {
+  const f = el('div', 'frame ' + kind);
+  if (kind === 'bright') f.append(el('div', 'shade'));
+  const ctr = el('div', 'controls');
+  const line = el('div', 'line', '<i></i>');
+  const row = el('div', 'row');
+  const L = state === 'a'
+    ? ['play', 'volume-high']
+    : state === 'b' ? ['pause', 'volume-off'] : ['restart', 'volume-low'];
+  const R = state === 'a'
+    ? ['captions-off', 'gear', 'pip-enter', 'airplay-enter', 'fullscreen-enter']
+    : state === 'b' ? ['captions-on', 'gear', 'pip-exit', 'cast-exit', 'fullscreen-exit']
+    : ['captions-off', 'gear', 'pip-enter', 'cast-enter', 'fullscreen-enter'];
+  for (const n of L) row.append(btn(n, n === 'play' ? 'hover' : ''));
+  row.append(el('div', 'vol', '<i></i>'), el('div', 'chap', 'Building the nest'));
+  row.append(el('div', 'spacer'));
+  for (const n of R) row.append(btn(n, state === 'b' && n === 'gear' ? 'rot60 hover' : ''));
+  ctr.append(line, row);
+  f.append(ctr);
+  return f;
+}
+for (const s of ['a', 'b', 'c']) { CD.append(player('bright', s), player('dark', s)); }
+for (const kind of ['bright', 'dark']) {
+  const f = el('div', 'frame tall ' + kind);
+  if (kind === 'bright') f.append(el('div', 'shade'));
+  const r = el('div', 'allrow');
+  for (const grp of ORDER) for (const n of grp) r.append(btn(n));
+  f.append(r);
+  CD.append(f);
+}
+
+// (e)
+const E = document.getElementById('e');
+function big(name, { color = '#fff', style = '', grid = true, extra = '' } = {}) {
+  const b = el('div', 'big' + (grid ? ' grid' : ''));
+  const s = el('div', '', ICONS[name]);
+  const svg = s.firstChild; svg.style.cssText = `color:${color};${style}`;
+  b.append(svg);
+  if (extra) b.insertAdjacentHTML('beforeend', extra);
+  b.append(el('div', 'midv'), el('div', 'midh'));
+  return b;
+}
+function check(title, ...nodes) {
+  const c = el('div', 'chk');
+  c.append(el('div', 'name', title));
+  const p = el('div', 'pair'); p.append(...nodes); c.append(p);
+  E.append(c);
+}
+check('play beside pause (6×)', big('play'), big('pause'));
+const ov = big('pause', { color: 'rgb(80 160 255 / 0.85)' });
+ov.append(Object.assign(el('div', '', ICONS.play).firstChild, { style: 'position:absolute;inset:0;width:108px;height:108px;color:rgb(255 255 255 / 0.75)' }));
+check('play over pause', ov);
+const disc = el('div', 'discwrap'); const d1 = el('div', 'disc', ICONS.play); disc.append(d1);
+const disc2 = el('div', 'discwrap'); disc2.append(el('div', 'disc', ICONS.pause));
+check('feedback disc (36px icon, 72px disc)', disc, disc2);
+const g2 = big('gear', { color: 'rgb(255 60 60 / 0.9)' });
+g2.append(Object.assign(el('div', '', ICONS.gear).firstChild, { style: 'position:absolute;inset:0;width:108px;height:108px;color:rgb(60 220 255 / 0.6);rotate:60deg' }));
+check('gear and gear + 60° (should coincide)', g2);
+const c2 = big('chevron', { color: 'rgb(255 60 60 / 0.9)' });
+c2.append(Object.assign(el('div', '', ICONS.chevron).firstChild, { style: 'position:absolute;inset:0;width:108px;height:108px;color:rgb(60 220 255 / 0.6);rotate:180deg' }));
+check('chevron and chevron rotated 180°', c2);
+const vol = big('volume-high', { color: 'rgb(255 255 255 / 0.35)' });
+vol.append(Object.assign(el('div', '', ICONS['volume-off']).firstChild, { style: 'position:absolute;inset:0;width:108px;height:108px;color:rgb(255 255 255 / 0.85)' }));
+check('volume-off over volume-high', vol);
+const seeks = el('div', 'zoom3');
+seeks.style.display = 'flex';
+seeks.style.background = '#000';
+for (const k of ['back', 'fwd']) {
+  const s = el('div', 'seekbtn ' + k);
+  const c = el('div', 'content', ICONS.seek);
+  c.append(el('span', 'lbl', '10'));
+  s.append(c); seeks.append(s);
+}
+const rs = el('div', 'seekbtn'); rs.innerHTML = ICONS.restart; seeks.append(rs);
+check('seek −10 / +10 with the stock label, restart (3×)', seeks);
+const menu = el('div', 'menu');
+for (const [ic, label, hint] of [['quality', 'Quality', 'Auto'], ['speech', 'Audio', 'English'], ['speed', 'Speed', 'Normal'], ['captions-off', 'Captions', 'Off']]) {
+  const m = el('div', 'mi'); m.innerHTML = ICONS[ic] + `<span>${label}</span><span class="hint">${hint}${ICONS.chevron}</span>`;
+  menu.append(m);
+}
+const menu2 = el('div', 'menu');
+for (const [label, on] of [['1080p', true], ['720p', false], ['480p', false]]) {
+  const m = el('div', 'mi' + (on ? ' sel' : '')); m.innerHTML = (on ? ICONS.check : '<span class="sp"></span>') + `<span>${label}</span>`;
+  menu2.append(m);
+}
+const back = el('div', 'mi'); back.innerHTML = `<span style="display:contents">${ICONS.chevron.replace('<svg ', '<svg style="rotate:180deg" ')}</span><span>Quality</span>`;
+menu2.prepend(back);
+check('settings menu, actual size', menu, menu2);
+const sw = el('div', ''); sw.style.cssText = 'display:flex;gap:8px';
+sw.append(big('switches'), big('quality'), big('speed'), big('speech'));
+check('menu glyphs (6×)', sw);
+const sp = el('div', ''); sp.style.cssText = 'display:flex;gap:8px';
+sp.append(big('spinner'), big('spinner', { style: 'rotate:120deg' }), big('restart'), big('seek'));
+check('spinner (0°, 120°), restart, seek (6×)', sp);
+</script>
+</body>
+</html>

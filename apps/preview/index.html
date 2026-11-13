@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Usher, a Video.js skin: the playhead tells the time</title>
+    <meta
+      name="description"
+      content="Usher is a skin for the Video.js 10 player. One solid marker on the timeline holds the current time: the clock, the handle, the start button and the replay button."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="./page/favicon.svg" type="image/svg+xml" vite-ignore />
+    <link rel="preload" as="image" href="./media/poster.jpg" fetchpriority="high" vite-ignore />
+    <script type="module" src="/src/page/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="masthead" data-masthead>
+      <nav class="nav" aria-label="Sections" data-nav>
+        <div class="nav-track" aria-hidden="true">
+          <span class="nav-marker" data-nav-marker><span data-nav-name>Usher</span></span>
+        </div>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-list" data-nav-toggle>
+          <span class="visually-hidden">Sections. Current: </span><span data-nav-name>Usher</span>
+          <svg class="nav-toggle-chevron" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M7.707 4.293L11.707 8.293A1 1 0 0 1 11.707 9.707L7.707 13.707A1 1 0 0 1 6.293 12.293L9.586 9L6.293 5.707A1 1 0 0 1 7.707 4.293Z"
+            />
+          </svg>
+        </button>
+        <ol class="nav-list" id="nav-list" data-nav-list>
+          <li><a href="#usher" aria-current="location">Usher</a></li>
+          <li><a href="#jobs">Seven jobs</a></li>
+          <li><a href="#footage">Footage</a></li>
+          <li><a href="#sizes">Sizes</a></li>
+          <li><a href="#yours">Make it yours</a></li>
+          <li><a href="#keys">Keyboard</a></li>
+          <li><a href="#details">Details</a></li>
+          <li><a href="#icons">Icons</a></li>
+          <li><a href="#use">Use it</a></li>
+          <li><a href="#credits">Credits</a></li>
+        </ol>
+      </nav>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <!-- 1. Hero -->
+      <section class="section hero" id="usher" aria-labelledby="usher-title">
+        <div class="col hero-head">
+          <h1 class="wordmark" id="usher-title">Usher</h1>
+          <div class="hero-text">
+            <p class="lead">The playhead tells the time.</p>
+            <p>
+              Usher is a Video.js&nbsp;10 skin built on one object: a solid marker on the timeline that holds the current
+              time. It is the clock, the handle, the start button and the replay button, so the button row never makes
+              room for a number.
+            </p>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="player" data-player="hero" data-media="usher" data-ratio="16:9">
+            <img class="player-poster" src="./media/poster.jpg" alt="" decoding="async" vite-ignore />
+            <iframe
+              class="player-frame"
+              src="./preview.html#media=usher&amp;ratio=16:9&amp;scheme=light"
+              title="Usher player with the demo reel"
+              allow="autoplay; fullscreen; picture-in-picture"
+            ></iframe>
+          </div>
+
+          <div class="hero-row">
+            <div class="jump" role="group" aria-labelledby="jump-label">
+              <span class="jump-label" id="jump-label">Jump to</span>
+              <button class="chip" type="button" data-jump="bright" aria-label="Jump to bright footage">Bright</button>
+              <button class="chip" type="button" data-jump="dark" aria-label="Jump to dark footage">Dark</button>
+              <button class="chip" type="button" data-jump="busy" aria-label="Jump to busy footage">Busy</button>
+            </div>
+            <p class="hint" data-hint hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. One marker, seven jobs -->
+      <section class="section" id="jobs" aria-labelledby="jobs-title">
+        <div class="col section-head section-head-aside">
+          <div>
+            <h2 id="jobs-title">One marker, seven jobs</h2>
+            <p>The same solid block does every job that involves time, from before the first frame to after the last.</p>
+          </div>
+          <div class="strip-controls">
+            <button class="chip chip-icon" type="button" data-strip="prev" aria-label="Previous states" disabled>
+              <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  transform="matrix(-1 0 0 1 18 0)"
+                  d="M7.707 4.293L11.707 8.293A1 1 0 0 1 11.707 9.707L7.707 13.707A1 1 0 0 1 6.293 12.293L9.586 9L6.293 5.707A1 1 0 0 1 7.707 4.293Z"
+                />
+              </svg>
+            </button>
+            <button class="chip chip-icon" type="button" data-strip="next" aria-label="Next states">
+              <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M7.707 4.293L11.707 8.293A1 1 0 0 1 11.707 9.707L7.707 13.707A1 1 0 0 1 6.293 12.293L9.586 9L6.293 5.707A1 1 0 0 1 7.707 4.293Z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <ol class="strip" tabindex="0" aria-label="The marker through a session, in order" data-strip-list>
+          <li class="job">
+            <img src="./page/states/start.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">1</span><strong>Start.</strong> Before playback it is the play button, with the length of the video.</p>
+          </li>
+          <li class="job">
+            <img src="./page/states/clock.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">2</span><strong>Clock.</strong> While the video plays, it holds the current time at its place on the line.</p>
+          </li>
+          <li class="job">
+            <img src="./page/states/hover.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">3</span><strong>Hover.</strong> Point at the line and a hollow marker shows the time there, with a thumbnail and the chapter.</p>
+          </li>
+          <li class="job">
+            <img src="./page/states/scrub.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">4</span><strong>Scrub.</strong> Drag it and it lifts above the line with larger numerals, and the chapter names appear under the line.</p>
+          </li>
+          <li class="job">
+            <img src="./page/states/typed-time.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">5</span><strong>Typed time.</strong> <span data-job-typed>Focus it and press Enter, or double-click it, then type a time to go there.</span></p>
+          </li>
+          <li class="job">
+            <img src="./page/states/buffering.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">6</span><strong>Buffering.</strong> While it waits for data, a spinner sits inside it, before the numerals.</p>
+          </li>
+          <li class="job">
+            <img src="./page/states/replay.png" width="896" height="504" alt="" loading="lazy" decoding="async" vite-ignore />
+            <p><span class="job-n">7</span><strong>Replay.</strong> At the end it returns to the centre as the replay button.</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 3. Any footage -->
+      <section class="section" id="footage" aria-labelledby="footage-title">
+        <div class="col section-head">
+          <h2 id="footage-title">Any footage</h2>
+          <p>
+            White print sits straight on the picture over one eased scrim: no bar, no blur. These three players are paused on
+            the brightest, darkest and busiest parts of the reel.
+          </p>
+        </div>
+
+        <div class="col">
+          <ul class="footage" role="list">
+            <li>
+              <figure>
+                <div class="player" data-player="footage" data-media="usher" data-ratio="16:9" data-park="bright"></div>
+                <figcaption><strong>Bright</strong> <span data-park-caption></span></figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="player" data-player="footage" data-media="usher" data-ratio="16:9" data-park="dark"></div>
+                <figcaption><strong>Dark</strong> <span data-park-caption></span></figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="player" data-player="footage" data-media="usher" data-ratio="16:9" data-park="busy"></div>
+                <figcaption><strong>Busy</strong> <span data-park-caption></span></figcaption>
+              </figure>
+            </li>
+          </ul>
+          <p class="measure" data-contrast></p>
+        </div>
+      </section>
+
+      <!-- 4. Any size -->
+      <section class="section" id="sizes" aria-labelledby="sizes-title">
+        <div class="col section-head">
+          <h2 id="sizes-title">Any size</h2>
+          <p class="statement">Nothing in the row wraps, and a 1:00:00 time only widens the marker.</p>
+          <p>
+            One grammar from 240 to 1360 pixels: the line first, then the row. At 384 and under, the title, chapter, volume
+            and picture-in-picture step aside. At 240 the marker shrinks to a bead until you point at the line.
+          </p>
+        </div>
+
+        <div class="col">
+          <fieldset class="segmented" data-sizes>
+            <legend class="visually-hidden">Player size</legend>
+          </fieldset>
+        </div>
+
+        <div class="stage" data-stage>
+          <div class="ruler" aria-hidden="true"><span class="ruler-value" data-ruler></span></div>
+          <div class="stage-player" data-stage-player>
+            <div class="player" data-player="sizes" data-media="usher" data-ratio="16:9"></div>
+          </div>
+          <p class="stage-note" data-stage-note aria-live="polite"></p>
+        </div>
+      </section>
+
+      <!-- 5. Make it yours -->
+      <section class="section" id="yours" aria-labelledby="yours-title">
+        <div class="col section-head">
+          <h2 id="yours-title">Make it yours</h2>
+          <p>
+            Usher reads the standard Video.js custom properties. Set them on <code>media-container</code> and every fill,
+            corner and numeral follows.
+          </p>
+        </div>
+
+        <div class="col yours">
+          <div class="yours-player">
+            <div class="player" data-player="yours" data-media="usher" data-ratio="16:9"></div>
+          </div>
+
+          <form class="yours-controls" data-yours>
+            <fieldset class="field">
+              <legend>Accent</legend>
+              <div class="swatches" data-swatches></div>
+            </fieldset>
+
+            <div class="field">
+              <label class="field-label" for="radius">Corner radius</label>
+              <div class="range" data-range>
+                <input id="radius" type="range" min="0" max="33" step="1" value="12" data-radius />
+                <span class="range-line" aria-hidden="true"><span class="range-fill"></span></span>
+                <output class="range-marker" for="radius" aria-hidden="true" data-radius-out>12</output>
+              </div>
+            </div>
+
+            <fieldset class="field">
+              <legend>Font</legend>
+              <div class="segmented segmented-small" data-fonts></div>
+            </fieldset>
+
+            <div class="snippet">
+              <div class="snippet-head">
+                <span class="snippet-title" id="css-title">CSS</span>
+                <button class="chip chip-small" type="button" data-copy="css-code">Copy</button>
+              </div>
+              <pre aria-labelledby="css-title"><code id="css-code" data-css></code></pre>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- 6. Keyboard and touch -->
+      <section class="section" id="keys" aria-labelledby="keys-title">
+        <div class="col section-head">
+          <h2 id="keys-title">Keyboard and touch</h2>
+          <p>Every stock shortcut and gesture is kept. Shortcuts work while the player has focus: click it or tab into it.</p>
+        </div>
+
+        <div class="col keys">
+          <div>
+          <h3>Keyboard</h3>
+          <table class="shortcuts" data-shortcuts>
+            <caption class="visually-hidden">Keyboard shortcuts</caption>
+            <thead>
+              <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          </div>
+
+          <div class="touch">
+            <h3>Touch</h3>
+            <ul class="notes" data-touch></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Details -->
+      <section class="section" id="details" aria-labelledby="details-title">
+        <div class="col section-head">
+          <h2 id="details-title">Details</h2>
+          <p>The decisions behind the pixels, in the order you would notice them.</p>
+        </div>
+
+        <div class="col">
+          <dl class="details">
+            <div class="detail">
+              <dt>Marker placement</dt>
+              <dd>
+                <p>
+                  The marker sits at <code>left: p</code> and moves back by the same share of its own width with
+                  <code>translate: -p</code>, where p is the played fraction. At 0% its left edge meets the start of the
+                  line, at 100% its right edge meets the end, and nothing is measured.
+                </p>
+                <div class="demo-placement" aria-hidden="true">
+                  <span class="demo-line" style="--p: 0%"><span class="demo-marker">0:00</span></span>
+                  <span class="demo-line" style="--p: 50%"><span class="demo-marker">0:34</span></span>
+                  <span class="demo-line" style="--p: 100%"><span class="demo-marker">1:09</span></span>
+                </div>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>Concentric radii</dt>
+              <dd>
+                <p>
+                  The frame radius r is <code>--media-border-radius</code>, 12px by default. Buttons and the marker use
+                  R&nbsp;=&nbsp;min(2r/3,&nbsp;16px); sheets use min(1.5R,&nbsp;R&nbsp;+&nbsp;4px) around 4px of padding,
+                  so inner and outer corners stay concentric and all reach 0 together.
+                </p>
+                <div class="demo-radii" aria-hidden="true">
+                  <span class="demo-sheet"><span class="demo-item">Speed</span><span class="demo-item">Captions</span></span>
+                </div>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>The icon grid</dt>
+              <dd>
+                <p>
+                  Every icon is drawn on an 18px grid with a 14px live area, its bars and cuts 2px on whole pixels. The
+                  pause bars are 4px wide, the same as the line, and play sits right of the box centre so it looks centred.
+                </p>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>Tabular numerals</dt>
+              <dd>
+                <p>
+                  Every number is set with <code>tabular-nums lining-nums</code>, so the marker keeps its width while the
+                  seconds change. No number lives in the button row, so a host font without tabular figures cannot push it.
+                </p>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>The scrim</dt>
+              <dd><p data-scrim-note></p></dd>
+            </div>
+            <div class="detail">
+              <dt>Two-tone focus ring</dt>
+              <dd>
+                <p>
+                  One ring everywhere: a 2px white band between two 1px black edges, so it reads on snow and on night.
+                  Controls never hide while anything inside the player has keyboard focus.
+                </p>
+                <div class="demo-ring" aria-hidden="true">
+                  <span class="demo-ground demo-ground-light"><span class="demo-button"></span></span>
+                  <span class="demo-ground demo-ground-dark"><span class="demo-button"></span></span>
+                </div>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>Reduced motion</dt>
+              <dd>
+                <p>
+                  Every duration comes from the stock tokens, which drop to 50ms or less when motion is reduced. Movement
+                  becomes a state change or a fade; the press scale and the turning gear switch off.
+                </p>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>Forced colours</dt>
+              <dd>
+                <p>
+                  The scrim becomes a solid Canvas band, the played line Highlight, and the marker Highlight with
+                  HighlightText numerals and a CanvasText edge. The focus ring turns Highlight.
+                </p>
+              </dd>
+            </div>
+            <div class="detail">
+              <dt>Right to left</dt>
+              <dd>
+                <p>
+                  The line and the row keep their left-to-right order, as time does on a timeline, while text, menus and
+                  chevrons follow the language.
+                </p>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- 8. Icons -->
+      <section class="section" id="icons" aria-labelledby="icons-title">
+        <div class="col section-head">
+          <h2 id="icons-title">Icons</h2>
+          <p>
+            25 icons drawn for Usher: filled shapes on an 18px grid, solid for on and hollow for off. Each one is shown
+            four times larger over its grid, and at its real size in a 40px button.
+          </p>
+        </div>
+
+        <div class="col">
+          <ul class="icons" role="list" data-icons></ul>
+        </div>
+      </section>
+
+      <!-- 9. Use it -->
+      <section class="section" id="use" aria-labelledby="use-title">
+        <div class="col section-head">
+          <h2 id="use-title">Use it</h2>
+          <p>Usher is plain HTML and CSS on top of Video.js&nbsp;10. Three steps put it on your site.</p>
+        </div>
+
+        <div class="col">
+          <ol class="steps">
+            <li class="step">
+              <h3>Copy the skin</h3>
+              <p>Install Video.js 10, then copy this project's <code>src/</code> folder into yours, here as <code>usher/</code>.</p>
+              <div class="snippet">
+                <div class="snippet-head">
+                  <span class="snippet-title" id="step-1-title">Terminal</span>
+                  <button class="chip chip-small" type="button" data-copy="step-1">Copy</button>
+                </div>
+                <pre aria-labelledby="step-1-title"><code id="step-1">npm install @videojs/html@10.4.0</code></pre>
+              </div>
+            </li>
+            <li class="step">
+              <h3>Import it</h3>
+              <p>Import the player and <code>video/skin.ts</code> once. The skin brings its CSS, icons and elements.</p>
+              <div class="snippet">
+                <div class="snippet-head">
+                  <span class="snippet-title" id="step-2-title">JavaScript</span>
+                  <button class="chip chip-small" type="button" data-copy="step-2">Copy</button>
+                </div>
+                <pre aria-labelledby="step-2-title"><code id="step-2">import '@videojs/html/video/player';
+import './usher/video/skin';</code></pre>
+              </div>
+            </li>
+            <li class="step">
+              <h3>Paste the markup</h3>
+              <p>
+                Paste <code>video/skin.html</code> inside <code>&lt;video-player&gt;</code> and put your video where its
+                first comment says.
+              </p>
+              <div class="snippet">
+                <div class="snippet-head">
+                  <span class="snippet-title" id="step-3-title">HTML</span>
+                  <button class="chip chip-small" type="button" data-copy="step-3">Copy</button>
+                </div>
+                <pre aria-labelledby="step-3-title"><code id="step-3" data-markup></code></pre>
+              </div>
+            </li>
+          </ol>
+          <p class="license">
+            Usher is free to use and change under the
+            <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License&nbsp;2.0</a>, like Video.js itself.
+          </p>
+        </div>
+      </section>
+
+      <!-- 10. Credits -->
+      <section class="section credits" id="credits" aria-labelledby="credits-title">
+        <div class="col section-head">
+          <h2 id="credits-title">Credits</h2>
+        </div>
+        <div class="col credits-body">
+          <div class="attribution" data-attribution>
+            <p>The demo reel is cut from open movies by the Blender Foundation, licensed under Creative Commons Attribution 4.0.</p>
+          </div>
+          <ul class="links" role="list">
+            <li>Built with <a href="https://videojs.org">Video.js&nbsp;10</a></li>
+            <li><a href="./workbench.html">Open the workbench</a> to try every option, language and direction.</li>
+            <li><a href="./preview.html#media=usher&amp;ratio=16:9">Open the player on its own</a></li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

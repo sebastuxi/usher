@@ -1,0 +1,150 @@
+@layer base.theme, base.preset, base.preferences;
+
+/*
+ * Usher tokens (design/spec.md §3, §4, §5, §11). They sit in `base.preset`, like the other theme files, so they win
+ * over the stock defaults in `base.theme`, and `base.preferences` still wins over them.
+ *
+ * One unit `u` = `--media-spacing` (4px at the default 16px `--media-scale-unit`), so `--media-scale-unit` and the
+ * fullscreen `--media-scale` steps keep scaling every size below.
+ */
+@layer base.preset {
+  .media-skin[data-theme="usher"] {
+    /*
+     * Print: marks set straight on the picture, over the shade band (§6). The band peaks at 60% black, so over a pure
+     * white frame the ground under the glyphs is rgb(102): print 5.7:1, muted print at 85% 4.7:1, unplayed line at 60%
+     * 3.2:1. (72% muted print and a 50% line would fall to 3.9:1 and 2.7:1 there.)
+     */
+    --usher-print: rgb(255 255 255);
+    --usher-print-muted: rgb(255 255 255 / 0.85);
+    --usher-line-unplayed: rgb(255 255 255 / 0.6);
+    /* Drawn over the unplayed line: 0.6 + 0.4 × 0.44 ≈ 0.78, a step brighter, over any picture. */
+    --usher-line-buffered: rgb(255 255 255 / 0.44);
+    --usher-hover: rgb(255 255 255 / 0.16);
+
+    /* Signal: the only colour. A fill behind text, never a line, never text, never the ring. */
+    --usher-accent: var(--media-accent-color, #ffd23f);
+    --usher-accent-ink: var(--media-accent-text-color, #000);
+
+    /* Solid: sheets for values and choices. Video controls stay dark in both colour schemes. */
+    --usher-sheet: #1c1c1e;
+    --usher-sheet-text: rgb(255 255 255);
+    --usher-sheet-secondary: rgb(255 255 255 / 0.64);
+    --usher-sheet-edge: 0 0 0 1px rgb(255 255 255 / 0.1);
+    --usher-sheet-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+    --usher-hollow-fill: rgb(28 28 30 / 0.72);
+    --usher-disc: rgb(0 0 0 / 0.55);
+
+    /* Focus ring: a white band between two dark edges, readable on white and on black. */
+    --media-ring: rgb(255 255 255);
+    --usher-ring-edge: rgb(0 0 0);
+
+    /* Shade band (§6): a smoothstep scrim of this colour, at this opacity where the glyphs sit. */
+    --usher-scrim-color: 0 0 0;
+    --usher-scrim-peak: 0.6;
+
+    /* Shape (§4). Every radius follows --media-border-radius and reaches 0 with it. */
+    --usher-frame-radius: var(--media-border-radius, 12px);
+    --usher-radius: min(calc(var(--usher-frame-radius) * 2 / 3), 16px);
+    --usher-sheet-pad: var(--media-spacing);
+    --usher-sheet-radius: min(calc(var(--usher-radius) * 1.5), calc(var(--usher-radius) + var(--usher-sheet-pad)));
+    /* The hollow marker is 3/4 the marker's height, so its corner is 3/4 of R: the two shapes are similar. */
+    --usher-hollow-radius: calc(var(--usher-radius) * 0.75);
+    /* The start and replay marker is 56/32 the marker's height. */
+    --usher-hero-radius: calc(var(--usher-radius) * 1.75);
+
+    /* Size. */
+    --usher-line: var(--media-spacing);
+    --usher-chapter-gap: calc(var(--media-spacing) * 0.5);
+    --usher-icon: calc(var(--media-spacing) * 4.5);
+    /* The icons' live area inside their 18px grid (§12): glyph edges sit 2px inside the box. */
+    --usher-icon-live: calc(var(--media-spacing) * 3.5);
+    --usher-marker: calc(var(--media-spacing) * 8);
+    --usher-marker-pad: calc(var(--media-spacing) * 2);
+    --usher-hollow: calc(var(--media-spacing) * 6);
+    --usher-bead: calc(var(--media-spacing) * 3);
+    --usher-hero: calc(var(--media-spacing) * 14);
+    --usher-volume-line: calc(var(--media-spacing) * 16);
+
+    /* Type (§5). Numbers are tabular and lining everywhere. */
+    --usher-font: var(
+      --media-font-family,
+      system-ui,
+      -apple-system,
+      "Segoe UI Variable Text",
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      sans-serif
+    );
+    --usher-text-marker: calc(var(--media-spacing) * 4);
+    --usher-text-hero: calc(var(--media-spacing) * 5);
+    --usher-text-title: calc(var(--media-spacing) * 3.75);
+    --usher-text-label: calc(var(--media-spacing) * 3.25);
+    --usher-text-menu: calc(var(--media-spacing) * 3.5);
+    --usher-text-small: calc(var(--media-spacing) * 3);
+    --usher-text-dialog-title: calc(var(--media-spacing) * 4.25);
+
+    /* Motion (§11). Durations come from the stock tokens, which the preferences layer collapses. */
+    --usher-ease-enter: cubic-bezier(0.2, 0, 0, 1);
+    --usher-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+    /* Stock tokens, mapped so stock rules and public properties keep meaning the same thing. */
+    --media-foreground: var(--usher-print);
+    --media-accent: var(--usher-accent);
+    --media-accent-foreground: var(--usher-accent-ink);
+    --media-primary: var(--usher-accent);
+    --media-primary-foreground: var(--usher-accent-ink);
+    --media-popover: var(--usher-sheet);
+    --media-popover-foreground: var(--usher-sheet-text);
+    --media-video-border-radius: var(--usher-frame-radius);
+    --media-popover-side-offset: calc(var(--media-spacing) * 2);
+    --media-tooltip-side-offset: calc(var(--media-spacing) * 2);
+    --media-popover-boundary-offset: calc(var(--media-spacing) * 2);
+    --media-tooltip-boundary-offset: calc(var(--media-spacing) * 2);
+    --media-shadow-surface: none;
+    --media-shadow-surface-inset: none;
+    --media-backdrop-filter-surface: none;
+    --media-backdrop-filter-indicator: none;
+    --media-backdrop-filter-dialog: none;
+    --media-hidden-popup-scale: 0.96;
+  }
+
+  /* Text on the accent follows the accent: black on light accents, white on dark ones. */
+  @supports (color: contrast-color(red)) {
+    .media-skin[data-theme="usher"] {
+      --usher-accent-ink: var(--media-accent-text-color, contrast-color(var(--usher-accent)));
+    }
+  }
+
+  /* A stronger, near-solid band and brighter print tones: the controls read the same over any frame. */
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .media-skin[data-theme="usher"] {
+      --usher-scrim-peak: 0.9;
+      --usher-line-unplayed: rgb(255 255 255 / 0.7);
+      --usher-line-buffered: rgb(255 255 255 / 0.5);
+      --usher-print-muted: var(--usher-print);
+      --usher-hollow-fill: var(--usher-sheet);
+      --usher-disc: rgb(0 0 0 / 0.85);
+    }
+  }
+
+  @media (forced-colors: active) {
+    .media-skin[data-theme="usher"] {
+      --usher-print: CanvasText;
+      --usher-print-muted: CanvasText;
+      --usher-line-unplayed: GrayText;
+      --usher-line-buffered: GrayText;
+      --usher-hover: Highlight;
+      --usher-accent: Highlight;
+      --usher-accent-ink: HighlightText;
+      --usher-sheet: Canvas;
+      --usher-sheet-text: CanvasText;
+      --usher-sheet-secondary: CanvasText;
+      --usher-sheet-edge: 0 0 0 1px CanvasText;
+      --usher-hollow-fill: Canvas;
+      --usher-disc: Canvas;
+      --media-ring: Highlight;
+      --usher-ring-edge: Canvas;
+    }
+  }
+}

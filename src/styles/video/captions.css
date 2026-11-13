@@ -1,0 +1,37 @@
+@layer components {
+  @scope (.media-skin) {
+    :scope {
+      --media-caption-track-duration: var(--media-duration-controls);
+      --media-caption-track-delay: 25ms;
+    }
+
+    /* Native cues (Chromium and WebKit). The media element reads these through its own shadow style as well. */
+    video::-webkit-media-text-track-container {
+      z-index: 20;
+      font-family: inherit;
+      scale: 0.98;
+      translate: 0 var(--media-caption-track-y);
+      transition: translate var(--media-caption-track-duration) ease-out;
+      transition-delay: var(--media-caption-track-delay);
+    }
+  }
+
+  /*
+   * Usher lifts cues above the controls zone while the controls show, or while a control inside holds keyboard focus.
+   * The lift is set on the container's children (the media element among them) because the zone height comes from
+   * container queries, which cannot style the container itself; `--usher-zone` is set in `video/skin.css`.
+   */
+  @scope (.media-skin[data-theme="usher"]) {
+    :scope > * {
+      --media-caption-track-y: calc(var(--media-spacing) * -3);
+    }
+
+    /*
+     * Cues clear the zone and the band's feather. WebKit paints native cues beneath the band, so a cue inside the
+     * feather would be dimmed there; while captions are on the feather is short (32px, skin.css) and the lift clears it.
+     */
+    :scope:is([data-controls-visible], :has(.usher-content :focus-visible)) > * {
+      --media-caption-track-y: calc((var(--usher-zone) + var(--usher-feather)) * -1);
+    }
+  }
+}
