@@ -771,7 +771,7 @@
     /*
      * Scrub lift (§9.2): while dragging, the marker lifts and doubles, scaled about its anchor on the line so its edges
      * still meet the line's ends, with a 2px print stem down to the line. The button row fades and the chapter names
-     * appear under the line. Pointer only: keyboard focus on the thumb shows the preview and hides nothing.
+     * appear under the line. Pointer only: keyboard focus on the thumb hides nothing and shows no preview.
      */
     .usher-marker {
       transform-origin: var(--usher-at) 100%;
@@ -887,8 +887,9 @@
       transition: opacity var(--media-duration-fast) var(--usher-ease-exit);
     }
 
-    .usher-slider:is([data-pointing], [data-dragging], :has(.usher-thumb:focus-visible)):not([data-disabled])
-      .usher-preview {
+    /* Pointer only: the thumbnail follows the pointer, so under keyboard focus (no pointer) it would show the wrong
+     * frame at the line's start. The marker already shows the time, and the chapter button names the chapter. */
+    .usher-slider:is([data-pointing], [data-dragging]):not([data-disabled]) .usher-preview {
       opacity: 1;
       transition-timing-function: var(--usher-ease-enter);
     }
