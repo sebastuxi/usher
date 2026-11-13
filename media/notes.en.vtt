@@ -1,0 +1,38 @@
+WEBVTT
+
+NOTE
+Design notes for the Usher demo reel, shown as a subtitles track so the captions
+button, the captions menu and the caption lift can be tried.
+
+1
+00:00:01.000 --> 00:00:06.000
+Near white. No bar and no glass: white print
+over a soft scrim that keeps the picture's texture.
+
+2
+00:00:06.500 --> 00:00:12.500
+Over pure white the scrim still holds
+white print at 5.7:1.
+
+3
+00:00:14.000 --> 00:00:22.500
+Near black. The same scrim disappears into the dark.
+
+4
+00:00:24.000 --> 00:00:33.500
+The marker holds the current time,
+so the button row never makes room for a number.
+
+5
+00:00:35.000 --> 00:00:44.500
+Press G and type a time, such as 0:50, to go straight there.
+
+6
+00:00:46.000 --> 00:00:56.500
+Drag the line: the marker lifts, grows
+and names the chapter under your pointer.
+
+7
+00:00:58.000 --> 00:01:08.500
+Every control is reachable by keyboard,
+and keyboard focus keeps the controls on screen.
