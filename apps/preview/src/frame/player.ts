@@ -4,7 +4,7 @@ import '@/video/skin';
 import skinTemplate from '@/video/skin.html?raw';
 
 /** Public playback ID of the Usher reel on Mux. While it is empty, `#media=usher` plays the local reel instead. */
-export const USHER_MUX_ID = '';
+export const USHER_MUX_ID = 'NRulkurY01WcVY402ztWShxDlHb76IGjRNYXU2cSe02h64';
 
 // The Mux demo the workbench started with: NASA's Cosmic Dawn trailer, with captions, quality levels and a storyboard.
 const DEMO_SRC = 'https://stream.mux.com/83EzHOvVzVN01AsrD01BCpiH02Pj3S8mfzBOu101w2nHC5s.m3u8';
